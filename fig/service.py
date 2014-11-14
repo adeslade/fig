@@ -15,7 +15,7 @@ from .progress_stream import stream_output, StreamOutputError
 log = logging.getLogger(__name__)
 
 
-DOCKER_CONFIG_KEYS = ['image', 'command', 'hostname', 'domainname', 'user', 'detach', 'stdin_open', 'tty', 'mem_limit', 'ports', 'environment', 'dns', 'volumes', 'entrypoint', 'privileged', 'volumes_from', 'net', 'working_dir']
+DOCKER_CONFIG_KEYS = ['image', 'command', 'hostname', 'domainname', 'user', 'detach', 'stdin_open', 'tty', 'mem_limit', 'ports', 'environment', 'dns', 'volumes', 'entrypoint', 'privileged', 'volumes_from', 'net', 'working_dir', 'extra_hosts']
 DOCKER_CONFIG_HINTS = {
     'link'      : 'links',
     'port'      : 'ports',
@@ -261,6 +261,7 @@ class Service(object):
         privileged = options.get('privileged', False)
         net = options.get('net', 'bridge')
         dns = options.get('dns', None)
+        extra_hosts = options.get('extra_hosts', None)
 
         container.start(
             links=self._get_links(link_to_self=options.get('one_off', False)),
@@ -270,6 +271,7 @@ class Service(object):
             privileged=privileged,
             network_mode=net,
             dns=dns,
+            extra_hosts=extra_hosts
         )
         return container
 
@@ -369,6 +371,11 @@ class Service(object):
             if isinstance(container_options['environment'], list):
                 container_options['environment'] = dict(split_env(e) for e in container_options['environment'])
             container_options['environment'] = dict(resolve_env(k, v) for k, v in container_options['environment'].iteritems())
+
+        if 'extra_hosts' in container_options:
+            if isinstance(container_options['extra_hosts'], list):
+                container_options['extra_hosts'] = dict(split_env(e) for e in container_options['extra_hosts'])
+            container_options['extra_hosts'] = dict(resolve_env(k, v) for k, v in container_options['extra_hosts'].iteritems())
 
         if self.can_be_built():
             if len(self.client.images(name=self._build_tag_name())) == 0:
